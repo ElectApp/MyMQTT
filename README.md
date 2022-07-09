@@ -1,5 +1,4 @@
-# MyMQTT
-MQTT Android Service (Modified from paho.mqtt.android)
+# My MQTT
 
 The MQTT Android Service is an MQTT client library modified from https://github.com/eclipse/paho.mqtt.android
 because old library don't support Android 12. It hasn't updated in a long time.
