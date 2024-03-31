@@ -119,8 +119,10 @@ public class MainActivity extends AppCompatActivity {
         stTv.setText("Connecting...");
         //Set option
         MqttConnectOptions options = new MqttConnectOptions();
-//        options.setUserName(Constant.MQTT_USERNAME);
-//        options.setPassword(Constant.MQTT_PASSWORD.toCharArray());
+        if(!TextUtils.isEmpty(MQTT_USERNAME) && !TextUtils.isEmpty(MQTT_PASSWORD)) {
+            options.setUserName(MQTT_USERNAME);
+            options.setPassword(MQTT_PASSWORD.toCharArray());
+        }
         options.setAutomaticReconnect(true);
         options.setCleanSession(true);
         try {
@@ -129,6 +131,7 @@ public class MainActivity extends AppCompatActivity {
                 @Override
                 public void onSuccess(IMqttToken asyncActionToken) {
                     Log.w(TAG, "Connect success");
+                    stTv.setText("Connected");
                     //Subscribe
                     subscribe(getEnter(eSubTp));
                 }
