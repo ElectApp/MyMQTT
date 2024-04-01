@@ -1,10 +1,18 @@
 package com.somsakelect.android.mymqtt;
 
+import androidx.activity.result.ActivityResult;
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 
+import android.app.AlarmManager;
+import android.app.Service;
 import android.content.Context;
+import android.content.Intent;
+import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
+import android.provider.Settings;
 import android.text.TextUtils;
 import android.util.Log;
 import android.view.View;
@@ -13,6 +21,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.somsakelect.android.mqtt.MqttAndroidClient;
+import com.somsakelect.android.mymqtt.helper.BetterActivityResult;
 
 import org.eclipse.paho.client.mqttv3.*;
 
@@ -32,6 +41,8 @@ public class MainActivity extends AppCompatActivity {
     private TextView subTv, stTv;
     private EditText eSubTp, ePubTp, ePubMsg;
     private static final String TAG = "MainActivity";
+    private static final int SCHEDULE_EXACT_ALARM_CODE = 1433;
+    protected final BetterActivityResult<Intent, ActivityResult> activityLauncher = BetterActivityResult.registerActivityForResult(this);
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -106,6 +117,20 @@ public class MainActivity extends AppCompatActivity {
         connectMQTT();
     }
 
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        Log.w(TAG, "onActivityResult: request="+requestCode+", result="+resultCode);
+        if(requestCode == SCHEDULE_EXACT_ALARM_CODE) {
+            if(resultCode == RESULT_OK) {
+                connectMQTT();
+            } else {
+                showToast("Permission is denied.");
+                stTv.setText("Please grant permission.");
+            }
+        }
+    }
+
     private void showToast(String message){
         Toast.makeText(this, message, Toast.LENGTH_LONG).show();
     }
@@ -115,6 +140,22 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void connectMQTT(){
+        // Check if the SCHEDULE_EXACT_ALARM permission is granted
+        // https://developer.android.com/about/versions/14/changes/schedule-exact-alarms
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            AlarmManager alarmManager = (AlarmManager) getSystemService(Service.ALARM_SERVICE);
+            boolean v = alarmManager.canScheduleExactAlarms();
+            Log.d(TAG, "SCHEDULE_EXACT_ALARM is granted..."+v);
+            if(!v) {
+                //Request permission
+                Intent intent = new Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM);
+                Uri uri = Uri.fromParts("package", getPackageName(), null);
+                intent.setData(uri);
+                startActivityForResult2(intent, SCHEDULE_EXACT_ALARM_CODE);
+                return;
+            }
+        }
+
         Log.w(TAG, "Connecting MQTT server...");
         stTv.setText("Connecting...");
         //Set option
@@ -254,4 +295,12 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    private void startActivityForResult2(final Intent intent, final int requestCode){
+        activityLauncher.launch(intent, new BetterActivityResult.OnActivityResult<ActivityResult>() {
+            @Override
+            public void onActivityResult(ActivityResult result) {
+                MainActivity.this.onActivityResult(requestCode, result.getResultCode(), result.getData());
+            }
+        });
+    }
 }
