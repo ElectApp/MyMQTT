@@ -1,12 +1,14 @@
 package com.somsakelect.android.mqtt;
 /*
+ * 2022-07-06
  * This scripts is modified from https://github.com/eclipse/paho.mqtt.android/tree/master/org.eclipse.paho.android.service
  * for fixed error below on Android 12:
  * Targeting S+ (version 10000 and above) requires that one of FLAG_IMMUTABLE or FLAG_MUTABLE be specified
  * when creating a PendingIntent
  *
- * Modified by Somsak Elect, 2022-07-06
-* */
+ * 2025-02-17
+ * Fixed MQTT crash on Android 14 when registering broadcast receivers dynamically.
+ * */
 import android.annotation.SuppressLint;
 import android.app.AlarmManager;
 import android.app.PendingIntent;
@@ -66,7 +68,16 @@ class AlarmPingSender implements MqttPingSender {
         String action = MqttServiceConstants.PING_SENDER
                 + comms.getClient().getClientId();
         Log.d(TAG, "Register alarmreceiver to MqttService"+ action);
-        service.registerReceiver(alarmReceiver, new IntentFilter(action));
+
+        // Fixed MQTT crash on Android 14
+        // Must set targetSdkVersion 34 on build.gradle(:mqtt)
+        // Android 14's new requirement for explicit RECEIVER_NOT_EXPORTED flags when registering broadcast receivers dynamically.
+        IntentFilter filter = new IntentFilter(action);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            service.registerReceiver(alarmReceiver, filter, Context.RECEIVER_NOT_EXPORTED);
+        } else {
+            service.registerReceiver(alarmReceiver, filter);
+        }
 
         pendingIntent = PendingIntent.getBroadcast(service, 0, new Intent(
                 action), Build.VERSION.SDK_INT>=Build.VERSION_CODES.S?

@@ -26,7 +26,10 @@
             </intent-filter>
         </activity>
 
-        <service android:name="com.somsakelect.android.mqtt.MqttService" />
+        <service
+            android:name="com.somsakelect.android.mqtt.MqttService"
+            android:exported="false">
+        </service>
 
     </application>
 
